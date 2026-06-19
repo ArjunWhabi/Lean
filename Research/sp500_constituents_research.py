@@ -22,14 +22,30 @@ history = qb.UniverseHistory(spy_universe, start, end)
 
 print(f"history type: {type(history)}")
 print(f"history length: {len(history)}")
+print(f"sample index: {history.index[0]!r}")
+
+def _extract_date(index_key):
+    # The index key may be a plain Timestamp or a tuple (e.g. (time, symbol))
+    # depending on the Lean/QC version's UniverseHistory packing.
+    if isinstance(index_key, tuple):
+        index_key = index_key[0]
+    return pd.Timestamp(index_key).date().isoformat()
+
+def _extract_ticker(constituent):
+    # constituent may already be a Symbol, or an object exposing .Symbol.
+    symbol_obj = getattr(constituent, "Symbol", constituent)
+    return getattr(symbol_obj, "Value", str(symbol_obj))
 
 rows = []
-for as_of_date, constituents in history.items():
-    constituents = list(constituents)
-    if not constituents:
-        continue
+for index_key, constituents in history.items():
+    as_of_date = _extract_date(index_key)
+    if not isinstance(constituents, (list, tuple, set)):
+        try:
+            constituents = list(constituents)
+        except TypeError:
+            constituents = [constituents]
     for c in constituents:
-        rows.append({"date": as_of_date.date().isoformat(), "ticker": c.Symbol.Value})
+        rows.append({"date": as_of_date, "ticker": _extract_ticker(c)})
 
 if not rows:
     raise RuntimeError(
