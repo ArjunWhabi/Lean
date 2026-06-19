@@ -7,10 +7,9 @@ import pandas as pd
 
 qb = QuantBook()
 
-universe_settings = UniverseSettings
-universe_settings.Resolution = Resolution.Daily
+qb.UniverseSettings.Resolution = Resolution.Daily
 
-spx_universe = qb.AddUniverse(qb.Universe.Index("SPX", universe_settings))
+spx_universe = qb.AddUniverse(qb.Universe.Index("SPX", qb.UniverseSettings))
 
 start = datetime(2015, 1, 1)
 end = datetime(2024, 1, 1)
