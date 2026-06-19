@@ -58,10 +58,18 @@ if not rows:
         "Lean/QC API version (it may have moved or been renamed)."
     )
 
-df = pd.DataFrame(rows).sort_values(["date", "ticker"]).reset_index(drop=True)
+long_df = pd.DataFrame(rows).sort_values(["date", "ticker"]).reset_index(drop=True)
+
+# Pivot to one row per date, tickers spread across numbered columns
+# (membership/count varies by day, so tickers can't be fixed column names).
+grouped = long_df.groupby("date")["ticker"].apply(list)
+max_constituents = grouped.map(len).max()
+column_names = [f"ticker_{i + 1}" for i in range(max_constituents)]
+
+wide_df = pd.DataFrame(grouped.tolist(), index=grouped.index, columns=column_names).reset_index()
 
 output_path = "sp500_constituents.csv"
-df.to_csv(output_path, index=False)
+wide_df.to_csv(output_path, index=False)
 
-print(f"Saved {len(df)} rows covering {df['date'].nunique()} trading days to {output_path}")
-df.head(20)
+print(f"Saved {len(wide_df)} dates (up to {max_constituents} tickers/date) to {output_path}")
+wide_df.head(5)
