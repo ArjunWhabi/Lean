@@ -25,10 +25,13 @@ print(f"history length: {len(history)}")
 print(f"sample index: {history.index[0]!r}")
 
 def _extract_date(index_key):
-    # The index key may be a plain Timestamp or a tuple (e.g. (time, symbol))
-    # depending on the Lean/QC version's UniverseHistory packing.
+    # The index key is a (Symbol, Timestamp) tuple for this universe's
+    # UniverseHistory; the Timestamp is the second element.
     if isinstance(index_key, tuple):
-        index_key = index_key[0]
+        for part in index_key:
+            if isinstance(part, (pd.Timestamp, datetime)):
+                return pd.Timestamp(part).date().isoformat()
+        raise ValueError(f"No Timestamp found in index tuple: {index_key!r}")
     return pd.Timestamp(index_key).date().isoformat()
 
 def _extract_ticker(constituent):
