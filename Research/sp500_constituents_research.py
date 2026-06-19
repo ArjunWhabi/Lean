@@ -1,6 +1,6 @@
 # QuantConnect Research environment notebook/script
-# Pulls the daily historical S&P 500 constituent list (Index Constituents
-# Universe, CBOE "SPX" data) and saves it to a CSV.
+# Pulls the daily historical S&P 500 constituent list via the ETF
+# Constituents Universe on SPY (the S&P 500 ETF) and saves it to a CSV.
 
 from AlgorithmImports import *
 import pandas as pd
@@ -9,14 +9,16 @@ qb = QuantBook()
 
 qb.UniverseSettings.Resolution = Resolution.Daily
 
-spx_universe = qb.AddUniverse(qb.Universe.Index("SPX", qb.UniverseSettings))
+# ETF Constituents Universe: returns, for each date, the list of constituent
+# securities (with weights) underlying the SPY ETF, i.e. the S&P 500.
+spy_universe = qb.AddUniverse(
+    qb.Universe.ETF("SPY", qb.UniverseSettings, lambda constituents: [c.Symbol for c in constituents])
+)
 
-start = datetime(2015, 1, 1)
+start = datetime(2020, 1, 1)
 end = datetime(2024, 1, 1)
 
-# Returns a pandas Series indexed by date; each value is the list of
-# constituent data objects (one per symbol) for that date.
-history = qb.UniverseHistory(spx_universe, start, end)
+history = qb.UniverseHistory(spy_universe, start, end)
 
 print(f"history type: {type(history)}")
 print(f"history length: {len(history)}")
@@ -31,13 +33,10 @@ for as_of_date, constituents in history.items():
 
 if not rows:
     raise RuntimeError(
-        "No constituent rows were returned by UniverseHistory. "
-        "This usually means the SPX Index Constituents dataset isn't available "
-        "in the current environment (e.g. running the local Lean CLI research "
-        "container instead of QuantConnect's cloud Research environment, or no "
-        "data subscription for this dataset). Verify by running this in "
-        "QuantConnect cloud Research, and confirm the date range overlaps "
-        "available data."
+        "No constituent rows were returned by UniverseHistory. Check that the "
+        "date range overlaps the ETF Constituents dataset's coverage, and that "
+        "qb.Universe.ETF('SPY', ...) is the correct universe accessor for your "
+        "Lean/QC API version (it may have moved or been renamed)."
     )
 
 df = pd.DataFrame(rows).sort_values(["date", "ticker"]).reset_index(drop=True)

@@ -6,10 +6,10 @@ from AlgorithmImports import *
 class SP500UniverseLogger(QCAlgorithm):
     """
     Live/backtest algorithm that tracks the daily S&P 500 constituent list
-    (via the Index Constituents Universe) and appends it to a CSV file in
-    the Object Store. Runs bar-by-bar on OnData; universe membership changes
-    are captured in OnSecuritiesChanged and a snapshot is written once per
-    trading day.
+    (via the ETF Constituents Universe on SPY) and appends it to a CSV file
+    in the Object Store. Runs bar-by-bar on OnData; universe membership
+    changes are captured in OnSecuritiesChanged and a snapshot is written
+    once per trading day.
     """
 
     def Initialize(self) -> None:
@@ -19,8 +19,10 @@ class SP500UniverseLogger(QCAlgorithm):
 
         self.UniverseSettings.Resolution = Resolution.Daily
 
-        # Index Constituents Universe -> actual daily S&P 500 membership (CBOE data).
-        self.spx_universe = self.AddUniverse(self.Universe.Index("SPX", self.UniverseSettings))
+        # ETF Constituents Universe on SPY -> proxy for daily S&P 500 membership.
+        self.spy_universe = self.AddUniverse(
+            self.Universe.ETF("SPY", self.UniverseSettings, lambda constituents: [c.Symbol for c in constituents])
+        )
 
         self.csv_key = "sp500_constituents.csv"
         self._current_symbols = set()
